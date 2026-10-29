@@ -22,7 +22,6 @@ WINDOW_SIZE = (1280, 800)
 # ASSUMPTION: fixed-size desktop window, built-in font, no external artwork/audio.
 FONT_NAME = None
 FONT_SMALL, FONT_BODY, FONT_HEADING, FONT_TITLE = 19, 25, 34, 56
-PANEL_WIDTH, MARGIN, LEGEND_HEIGHT = 350, 28, 76
 DISC_RADIUS_RATIO = 0.62
 BANNER_SECONDS = 4.0
 SEED_BITS = 32
@@ -37,7 +36,7 @@ COLORS = {
 }
 STRINGS = {
     "title": "Hex Reversi", "subtitle": "Win points, not just pieces.",
-    "setup": "Match setup", "algorithm": "AI algorithm", "greedy": "Greedy",
+    "algorithm": "AI algorithm", "greedy": "Greedy",
     "minimax": "Minimax", "depth": "Search depth", "depth_number": "{depth}",
     "depth_note": "Depth 4 may be slow. Plain Minimax, no pruning.",
     "seed_label": "Seed (blank = random)", "seed_error": "Enter a whole number or leave the seed blank.",
@@ -62,5 +61,5 @@ STRINGS = {
     "decision_time": "Decision time: {ms:.2f} ms", "ai_error": "AI failed: {error}. Restart to retry.",
     "white_piece": "White piece", "black_piece": "Black piece", "hole": "Hole",
     "empty_cell": "Empty cell", "plus": "+ tile", "minus": "- tile",
-    "keys": "Tab: focus   Enter: select   N: numbers", "final": "Final scores",
+    "keys": "Tab: focus   Enter: select   N: numbers",
 }

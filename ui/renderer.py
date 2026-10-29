@@ -62,8 +62,6 @@ class BoardRenderer:
                 text(surface, tr("number", number=i + 1),
                      (center[0], center[1] - self.size * 0.72), 15, center=True)
             if i not in HOLES:
-                modifier = state.board.modifiers[i]
-                assert modifier is not None
                 label = f"{modifier[0]}{modifier[1]}"
                 label_color = "black" if state.owners[i] == WHITE else "text"
                 if not state.owners[i]:

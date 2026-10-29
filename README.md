@@ -167,6 +167,12 @@ the 1-based chosen tile, evaluation, candidate count b, visited nodes and decisi
 milliseconds measured with `time.perf_counter`. Calls copy the input state and
 never mutate the live game. Each AI owns an independent `random.Random` for ties.
 
+Both algorithms share `GreedyAI.choose_move`: validate the turn, simulate each
+legal move, evaluate each resulting board, then randomly choose a best move.
+Only `_evaluate` differs. Greedy returns its own score immediately; Minimax
+overrides `_evaluate` to call `_search` for the remaining depth. Timing,
+tie-breaking, cancellation and statistics are handled in one place.
+
 **Greedy** simulates every legal candidate and maximizes its own resulting score.
 Its reported evaluation is its own score, not score difference. The experiment's
 Black baseline applies this same rule from Black's perspective.
@@ -281,6 +287,18 @@ and modifiers are static while that decision is computed.
 | `experiments.py` | Headless paired comparisons, console table and CSV |
 | `tests/` | Geometry, modifiers, engine, AI, fuzz and UI integration coverage |
 | `VALIDATION.md` | Checks performed and remaining limits |
+
+For a short code presentation, follow one move in this order:
+
+1. `main.py` starts setup and switches to the game screen.
+2. `boardgen.py` builds the fixed board and draws seeded modifiers. A **ray**
+   is the precomputed list of tiles in one direction, stopping before a hole/edge.
+3. `engine.py:flips` checks those rays. `legal_moves` keeps moves that capture;
+   `apply_move` validates a move and `_apply_legal` places, flips and transfers points.
+4. `ai.py:choose_move` tries the same moves on copies. `_evaluate` supplies the
+   Greedy score or Minimax result; `_search` alternates maximizing and minimizing.
+5. `ui/game_screen.py` handles clicks, deadlines and completed AI results.
+   `ui/renderer.py` draws the resulting state; it does not decide the game rules.
 
 To translate the UI, edit `config.STRINGS`. Numeric modifier signs, cell numbers
 and generated values remain data. Experiment CLI messages are separate from

@@ -103,19 +103,31 @@ def test_pass_consumes_one_search_level() -> None:
     assert ai.nodes == 2
 
 
-def test_ai_validation_and_cancellation() -> None:
+@pytest.mark.parametrize("algorithm", [GreedyAI, MinimaxAI])
+def test_ai_validation_and_cancellation(algorithm: type) -> None:
     state = GameState(create_board(0))
     with pytest.raises(ValueError):
-        GreedyAI().choose_move(state)
+        algorithm().choose_move(state)
     with pytest.raises(ValueError):
         MinimaxAI(5)
     cancel = Event()
     cancel.set()
     state.turn = WHITE
     with pytest.raises(SearchCancelled):
-        MinimaxAI(4, cancel=cancel).choose_move(state)
+        algorithm(cancel=cancel).choose_move(state)
     with pytest.raises(ValueError):
-        GreedyAI().choose_move(forced_pass())
+        algorithm().choose_move(forced_pass())
+
+
+@pytest.mark.parametrize("algorithm", [GreedyAI, MinimaxAI])
+def test_decision_stats_reset_between_calls(algorithm: type) -> None:
+    state = GameState(create_board(1), turn=WHITE)
+    ai = algorithm(seed=0)
+    _, first = ai.choose_move(state)
+    _, second = ai.choose_move(state)
+    assert first.nodes == second.nodes > 0
+    assert first.candidates == second.candidates == len(state.legal_moves())
+    assert first.evaluation == second.evaluation
 
 
 @pytest.mark.parametrize("seed", range(40))

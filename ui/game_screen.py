@@ -7,7 +7,7 @@ import pygame
 import config
 from ai import GreedyAI, MinimaxAI, AIStats, SearchCancelled
 from boardgen import create_board
-from engine import GameState, opponent
+from engine import GameState
 from ui.renderer import BoardRenderer
 from ui.setup_screen import Settings
 from ui.widgets import Button, text, tr, wrapped_text, tab_index

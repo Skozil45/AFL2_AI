@@ -30,6 +30,7 @@ class GreedyAI:
                  cancel: Event | None = None) -> None:
         opponent(color)
         self.color, self.rng, self.cancel = color, Random(seed), cancel
+        self.nodes = 0
 
     def _check_cancelled(self) -> None:
         if self.cancel is not None and self.cancel.is_set():
@@ -45,15 +46,23 @@ class GreedyAI:
         moves = state.legal_moves()
         if not moves:
             raise ValueError("No legal move; caller must pass or end the game")
+        # ASSUMPTION: nodes count visited descendants (including pass nodes), not the root.
+        self.nodes = 0
         evaluations = {}
         for move, flips in moves.items():
             self._check_cancelled()
             child = state.copy()
             child._apply_legal(move, flips)
-            evaluations[move] = child.score(self.color)
+            evaluations[move] = self._evaluate(child)
         best = max(evaluations.values())
-        move = self.rng.choice([m for m, v in evaluations.items() if v == best])
-        return move, AIStats(move + 1, best, len(moves), len(moves), (perf_counter() - started) * 1000)
+        move = self.rng.choice([move for move, value in evaluations.items() if value == best])
+        elapsed_ms = (perf_counter() - started) * 1000
+        return move, AIStats(move + 1, best, len(moves), self.nodes, elapsed_ms)
+
+    def _evaluate(self, state: GameState) -> int:
+        """Greedy rates the board immediately after one candidate move."""
+        self.nodes += 1
+        return state.score(self.color)
 
 
 class MinimaxAI(GreedyAI):
@@ -65,7 +74,10 @@ class MinimaxAI(GreedyAI):
         if depth not in (1, 2, 3, 4):
             raise ValueError("Depth must be 1..4")
         self.depth = depth
-        self.nodes = 0
+
+    def _evaluate(self, state: GameState) -> int:
+        """The candidate move already used one level; search the remaining turns."""
+        return self._search(state, self.depth - 1)
 
     def _search(self, state: GameState, depth: int) -> int:
         self._check_cancelled()
@@ -85,23 +97,3 @@ class MinimaxAI(GreedyAI):
             child._apply_legal(move, flips)
             values.append(self._search(child, depth - 1))
         return max(values) if state.turn == self.color else min(values)
-
-    def choose_move(self, state: GameState) -> tuple[int, AIStats]:
-        """Evaluate every root candidate on copies, then randomly select a best."""
-        started = perf_counter()
-        state = state.copy()
-        if state.turn != self.color:
-            raise ValueError("AI called on the wrong turn")
-        moves = state.legal_moves()
-        if not moves:
-            raise ValueError("No legal move; caller must pass or end the game")
-        # ASSUMPTION: nodes count visited descendants (including pass nodes), not the root.
-        self.nodes = 0
-        evaluations = {}
-        for move, flips in moves.items():
-            child = state.copy()
-            child._apply_legal(move, flips)
-            evaluations[move] = self._search(child, self.depth - 1)
-        best = max(evaluations.values())
-        move = self.rng.choice([m for m, v in evaluations.items() if v == best])
-        return move, AIStats(move + 1, best, len(moves), self.nodes, (perf_counter() - started) * 1000)

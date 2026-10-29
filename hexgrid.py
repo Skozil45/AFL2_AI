@@ -19,8 +19,7 @@ CELLS: tuple[Cell, ...] = tuple(
     for q in range(row_bounds(r)[0], row_bounds(r)[1] + 1)
 )
 INDEX = {cell: i for i, cell in enumerate(CELLS)}
-ROW_STARTS = {r: next(i + 1 for i, cell in enumerate(CELLS) if cell[1] == r)
-              for r in range(-RADIUS, RADIUS + 1)}
+ROW_STARTS = {r: INDEX[(row_bounds(r)[0], r)] + 1 for r in range(-RADIUS, RADIUS + 1)}
 NEIGHBORS = tuple(tuple(INDEX.get((q + dq, r + dr), -1) for dq, dr in DIRECTIONS)
                   for q, r in CELLS)
 

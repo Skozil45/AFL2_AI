@@ -65,8 +65,13 @@ class GameState:
 
     def legal_moves(self, player: int | None = None) -> dict[int, tuple[int, ...]]:
         """Map legal move indices to their complete flip sets."""
-        return {i: captured for i in PLAYABLE if self.owners[i] == EMPTY
-                and (captured := self.flips(i, player))}
+        moves = {}
+        for move in PLAYABLE:
+            if self.owners[move] == EMPTY:
+                captured = self.flips(move, player)
+                if captured:
+                    moves[move] = captured
+        return moves
 
     def apply_move(self, move: int) -> tuple[int, ...]:
         """Validate and commit one move, then give the turn to the other side."""

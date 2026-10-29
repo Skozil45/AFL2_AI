@@ -2,6 +2,18 @@
 
 Verified on 29 October 2026, Asia/Bangkok.
 
+## Readability refactor verification
+
+- **92 tests passed on both Python 3.10 and 3.12** after sharing the AI decision
+  loop and simplifying move generation and numbering. The extra cases cover
+  validation/cancellation for both algorithms and resetting per-decision stats.
+- Repeated the **100-game experiment**: all five CSV rows matched the original
+  results in every field except measured move time, including node counts.
+- Compared eight deterministic Pygame renders before/after: setup, invalid seed,
+  opening, numbers, AI thinking, AI result, timer warning and game over.
+  All eight PNGs were byte-identical. Timing text and tie RNG were fixed for
+  this comparison; it is not a new human playthrough or FPS benchmark.
+
 ## Executed checks
 
 - **89 tests passed on Python 3.12.10**, Pygame 2.6.1, pytest 9.2.0.
