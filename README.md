@@ -1,6 +1,7 @@
 # Hex Reversi
 
-A runnable Human vs AI desktop game for Python 3.10+ and Pygame 2.x.
+A runnable Human vs AI desktop game for Python 3.10+ and pygame-ce 2.x
+(Pygame Community Edition). The code still uses `import pygame`.
 Black (the Player) moves first. The winner has the most **points**, not discs.
 The engine, board generator, geometry, and AI import no Pygame.
 
@@ -19,13 +20,13 @@ Or, in a shell supporting `&&`:
 pip install -r requirements.txt && python main.py
 ```
 
-To clone the repository and run with Python 3.12 on Windows, use these
-PowerShell commands. Install Python 3.12 first if it is not available:
+To clone the repository and run with Python 3.14 on Windows, use these
+PowerShell commands. Install Python 3.14 first if it is not available:
 
 ```powershell
 git clone https://github.com/Skozil45/AFL2_AI.git
 cd AFL2_AI
-py -3.12 -m venv .venv
+py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe main.py
 ```
@@ -33,6 +34,19 @@ py -3.12 -m venv .venv
 If you already have the repository, open PowerShell in its root and start with
 the virtual-environment command. No external images, fonts, sound files, network
 service, or build step is needed after installing the dependencies.
+
+pygame-ce provides Windows wheels for Python 3.14, avoiding the original
+Pygame source-build failure. If an existing environment already has `pygame`
+installed, uninstall that distribution before installing these requirements:
+both distributions provide the same `pygame` import package.
+
+```powershell
+py -3.14 -m pip uninstall pygame
+py -3.14 -m pip install -r requirements.txt
+py -3.14 main.py
+```
+
+In a virtual environment, use its `python` for both commands instead.
 
 ## Tests and experiments
 

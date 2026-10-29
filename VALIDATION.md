@@ -2,6 +2,16 @@
 
 Verified on 29 October 2026, Asia/Bangkok.
 
+## pygame-ce migration
+
+- Switched the dependency to `pygame-ce>=2.5.8,<3`; `import pygame` is unchanged.
+- Installed pygame-ce 2.5.8 from its Windows wheel on Python 3.14.6.
+- **92 tests passed** with pygame-ce and Python 3.14.
+- The native main loop completed setup, a human move, a depth-4 AI reply and
+  clean shutdown in a 75-frame synthetic-input smoke test.
+- Earlier Python 3.10/3.12 results below used original Pygame 2.6.1; they are
+  historical evidence, not additional pygame-ce compatibility checks.
+
 ## Readability refactor verification
 
 - **92 tests passed on both Python 3.10 and 3.12** after sharing the AI decision
@@ -29,7 +39,7 @@ Verified on 29 October 2026, Asia/Bangkok.
 
 Python 3.12 emitted one upstream Pygame `pkg_resources` deprecation warning.
 It did not cause a test or runtime failure. Python 3.10's test run emitted no
-warnings. No Python 3.14 runtime claim is made.
+warnings. These earlier checks preceded the pygame-ce migration recorded above.
 
 ## Rules and AI evidence
 
