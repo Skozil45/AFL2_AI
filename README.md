@@ -300,7 +300,6 @@ and modifiers are static while that decision is computed.
 | `ui/game_screen.py` | Thread coordination, timers, input and result overlay |
 | `experiments.py` | Headless paired comparisons, console table and CSV |
 | `tests/` | Geometry, modifiers, engine, AI, fuzz and UI integration coverage |
-| `VALIDATION.md` | Checks performed and remaining limits |
 
 For a short code presentation, follow one move in this order:
 
@@ -348,6 +347,7 @@ point of use:
 
 ## Verification limits
 
-See `VALIDATION.md` for concrete checks. Automated event tests and rendered
-screenshots do not constitute a human playthrough. No claim of constant 60 FPS
+The automated checks are in `tests/`; run them with `python -m pytest -q`.
+Automated event tests and rendered screenshots do not constitute a human
+playthrough. No claim of constant 60 FPS
 on all computers is made; plain depth-4 Minimax is intentionally unpruned.
