@@ -38,7 +38,7 @@ STRINGS = {
     "title": "Hex Reversi", "subtitle": "Win points, not just pieces.",
     "algorithm": "AI algorithm", "greedy": "Greedy",
     "minimax": "Minimax", "depth": "Search depth", "depth_number": "{depth}",
-    "depth_note": "Depth 4 may be slow. Plain Minimax, no pruning.",
+    "depth_note": "Search depth is how smart the enemy is, higher = harder.",
     "seed_label": "Seed (blank = random)", "seed_error": "Enter a whole number or leave the seed blank.",
     "holes_info": "Hole layout: fixed", "range_info": "Modifier range: -5 to +5",
     "limit_info": "Turn time limit: {limit} s", "limit_off": "Turn time limit: disabled",
