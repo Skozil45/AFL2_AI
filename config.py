@@ -23,6 +23,9 @@ WINDOW_SIZE = (1280, 800)
 FONT_NAME = None
 FONT_SMALL, FONT_BODY, FONT_HEADING, FONT_TITLE = 19, 25, 34, 56
 DISC_RADIUS_RATIO = 0.62
+GHOST_DISC_ALPHA = 110
+# Space left for the title bar and taskbar when fitting the window to the screen.
+SCREEN_MARGIN = 100
 BANNER_SECONDS = 4.0
 SEED_BITS = 32
 COLORS = {
@@ -47,7 +50,9 @@ STRINGS = {
     "player_short": "Player", "ai_short": "AI", "player_turn": "Your turn",
     "thinking": "AI is thinking...", "over": "Game over", "draw": "Draw",
     "winner": "{name} wins", "score": "{name}: {score} points",
-    "discs": "Discs: Player {black} / AI {white}", "difference": "AI - Player: {difference:+d}",
+    "discs": "Discs: Player {black} / AI {white}", "leads_by": "{name} leads by {points}",
+    "won_by": "{name} won by {points}", "tied": "Scores tied",
+    "value_note": "A tile scores {base} + its number: +3 scores {plus}, -2 scores {minus}.",
     "seed": "Seed: {seed}", "config": "{algorithm} / depth {depth}", "na": "-",
     "elapsed": "Game time: {seconds:.1f} s", "remaining": "Your time: {seconds:.1f} s",
     "ai_time": "Thinking time: {seconds:.1f} s", "timer_stopped": "Turn timer stopped",

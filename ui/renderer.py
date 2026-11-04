@@ -2,20 +2,34 @@
 
 from math import sqrt, cos, sin, pi
 import pygame
-from config import COLORS, FONT_BODY, FONT_SMALL, DISC_RADIUS_RATIO, WHITE, BLACK
+from config import COLORS, FONT_BODY, FONT_SMALL, DISC_RADIUS_RATIO, GHOST_DISC_ALPHA, WHITE, BLACK
 from hexgrid import CELLS, INDEX, axial_to_pixel, pixel_to_axial, corners
 from boardgen import HOLES
 from engine import GameState
+from ui import gfx
 from ui.widgets import text, tr
 
 
 def disc(surface: pygame.Surface, center: tuple[float, float], radius: float, owner: int) -> None:
     """Raised circular pieces with a rim distinct from full-footprint holes."""
-    x, y, radius = round(center[0]), round(center[1]), round(radius)
-    pygame.draw.circle(surface, COLORS["shadow"], (x + 1, y + 3), radius + 2)
-    pygame.draw.circle(surface, COLORS["white" if owner == WHITE else "black"], (x, y), radius)
-    pygame.draw.circle(surface, COLORS["rim"], (x, y), radius, 2)
-    pygame.draw.circle(surface, COLORS["rim" if owner == WHITE else "inner"], (x, y), max(1, radius - 4), 1)
+    x, y = center
+    gfx.circle(surface, COLORS["shadow"], (x + 1, y + 3), radius + 2)
+    gfx.circle(surface, COLORS["white" if owner == WHITE else "black"], center, radius)
+    gfx.circle(surface, COLORS["rim"], center, radius, 2)
+    gfx.circle(surface, COLORS["rim" if owner == WHITE else "inner"], center, max(1, radius - 4), 1)
+
+
+def ghost_disc(surface: pygame.Surface, center: tuple[float, float], radius: float) -> None:
+    """Translucent preview of the Black disc a legal move would place."""
+    color = (*pygame.Color(COLORS["black"])[:3], GHOST_DISC_ALPHA)
+    gfx.rect(surface, color, (center[0] - radius, center[1] - radius, radius * 2, radius * 2), border_radius=radius)
+
+
+def hex_cell(surface: pygame.Surface, center: tuple[float, float], size: float, fill: str, edge: str,
+             width: float) -> None:
+    """Hexagon with an inner border, drawn as two nested fills to keep both edges smooth."""
+    gfx.polygon(surface, COLORS[edge], corners(center, size))
+    gfx.polygon(surface, COLORS[fill], corners(center, size - width / cos(pi / 6)))
 
 
 class BoardRenderer:
@@ -37,27 +51,24 @@ class BoardRenderer:
         plate_radius = sqrt(3) * 6 * self.size
         plate = [(cx + plate_radius * cos(pi * k / 3), cy + plate_radius * sin(pi * k / 3)) for k in range(6)]
         for color, width in (("wood", 24), ("plate", 12)):
-            pygame.draw.polygon(surface, COLORS[color], plate)
-            pygame.draw.lines(surface, COLORS[color], True, plate, width)
-            for point in plate:
-                pygame.draw.circle(surface, COLORS[color], point, width // 2)
-        hover = self.hit_test(pygame.mouse.get_pos())
+            gfx.polygon(surface, COLORS[color], plate)
+            gfx.stroke(surface, COLORS[color], plate, width)
+        hover = self.hit_test(gfx.mouse_pos())
         for i, center in enumerate(self.centers):
-            polygon = corners(center, self.size - 1)
             if i in HOLES:
-                pygame.draw.polygon(surface, COLORS["hole"], corners(center, self.size))
-                pygame.draw.polygon(surface, COLORS["hole_edge"], corners(center, self.size - 5), 1)
+                gfx.polygon(surface, COLORS["hole"], corners(center, self.size))
+                hex_cell(surface, center, self.size - 5, "hole", "hole_edge", 1)
             else:
                 modifier = state.board.modifiers[i]
                 assert modifier is not None
-                pygame.draw.polygon(surface, COLORS["positive" if modifier[0] == "+" else "negative"], polygon)
-                pygame.draw.polygon(surface, COLORS["tile_edge"], polygon, 2)
-                if i == state.last_move or i == focused or i == hover:
-                    pygame.draw.polygon(surface, COLORS["gold" if i == state.last_move or i == focused else "rim"], polygon, 3 if i == focused else 2)
+                edge = ("gold" if i == state.last_move or i == focused else "rim" if i == hover
+                        else "white" if i in legal else "tile_edge")
+                hex_cell(surface, center, self.size - 1, "positive" if modifier[0] == "+" else "negative", edge,
+                         3 if i == focused or i in legal else 2)
                 if state.owners[i]:
                     disc(surface, center, self.size * DISC_RADIUS_RATIO, state.owners[i])
                 elif i in legal:
-                    pygame.draw.circle(surface, COLORS["white"], (round(center[0]), round(center[1] + self.size * 0.63)), 4, 2)
+                    ghost_disc(surface, center, self.size * DISC_RADIUS_RATIO)
             if show_numbers:
                 text(surface, tr("number", number=i + 1),
                      (center[0], center[1] - self.size * 0.72), 15, center=True)
@@ -71,7 +82,7 @@ class BoardRenderer:
 
     def hover_text(self, state: GameState) -> str:
         """Holes have no hover content, highlight or modifier."""
-        i = self.hit_test(pygame.mouse.get_pos())
+        i = self.hit_test(gfx.mouse_pos())
         if i is None or i in HOLES:
             return tr("hover_hint")
         q, r = CELLS[i]
@@ -89,6 +100,5 @@ class BoardRenderer:
                 disc(surface, center, 12, WHITE if k == 0 else BLACK)
             else:
                 color = ("hole", "plate", "positive", "negative")[k - 2]
-                pygame.draw.polygon(surface, COLORS[color], corners(center, 16))
-                pygame.draw.polygon(surface, COLORS["hole_edge" if k == 2 else "tile_edge"], corners(center, 16), 1)
+                hex_cell(surface, center, 16, color, "hole_edge" if k == 2 else "tile_edge", 1)
             text(surface, tr(label), (x + 36, y + 8), FONT_SMALL)

@@ -8,6 +8,7 @@ import config
 from ai import GreedyAI, MinimaxAI, AIStats, SearchCancelled
 from boardgen import create_board
 from engine import GameState
+from ui import gfx
 from ui.renderer import BoardRenderer
 from ui.setup_screen import Settings
 from ui.widgets import Button, text, tr, wrapped_text, tab_index
@@ -167,6 +168,14 @@ class GameScreen:
                     self.say(tr("illegal"), now)
         return None
 
+    def lead_text(self) -> str:
+        """Describe the score gap by who is ahead, not as a signed difference."""
+        lead = self.state.score(config.PLAYER_COLOR) - self.state.score(config.AI_COLOR)
+        if lead == 0:
+            return tr("tied")
+        name = tr("player_short" if lead > 0 else "ai_short")
+        return tr("won_by" if self.finished is not None else "leads_by", name=name, points=abs(lead))
+
     def draw(self, surface: pygame.Surface) -> None:
         """Render the board, scores, timer, search statistics and final overlay."""
         now = self.finished if self.finished is not None else perf_counter()
@@ -179,14 +188,17 @@ class GameScreen:
         self.renderer.draw(surface, self.state, self.legal if human and self.finished is None else {},
                            self.show_numbers, focused if isinstance(focused, int) else None)
         self.renderer.legend(surface, 735)
+        base = config.BASE_VALUE
+        text(surface, tr("value_note", base=base, plus=base + 3, minus=base - 2), (self.renderer.rect.centerx, 777),
+             config.FONT_SMALL, "muted", center=True)
         panel = pygame.Rect(916, 18, 352, 706)
-        pygame.draw.rect(surface, config.COLORS["panel"], panel, border_radius=8)
+        gfx.rect(surface, config.COLORS["panel"], panel, border_radius=8)
         x, width = 934, 318
         title = tr("over" if self.finished is not None else "player_turn" if human else "thinking")
         text(surface, title, (x, 36), config.FONT_HEADING, max_width=width)
         lines = [tr("score", name=tr("player"), score=self.state.score(config.BLACK)),
                  tr("score", name=tr("ai"), score=self.state.score(config.WHITE)),
-                 tr("difference", difference=self.state.score(config.WHITE) - self.state.score(config.BLACK)),
+                 self.lead_text(),
                  tr("discs", black=self.state.disc_count(config.BLACK), white=self.state.disc_count(config.WHITE))]
         for i, label in enumerate(lines):
             text(surface, label, (x, 92 + i * 29), config.FONT_BODY if i < 2 else config.FONT_SMALL, max_width=width)
@@ -205,8 +217,8 @@ class GameScreen:
                 remaining = max(0.0, limit - (now - self.turn_started))
                 color = "red" if remaining <= config.TIMER_WARNING_SECONDS else "gold"
                 text(surface, tr("remaining", seconds=remaining), (x, 338), color=color)
-                pygame.draw.rect(surface, config.COLORS["disabled"], (x, 368, width, 7))
-                pygame.draw.rect(surface, config.COLORS[color], (x, 368, round(width * remaining / limit), 7))
+                gfx.rect(surface, config.COLORS["disabled"], (x, 368, width, 7))
+                gfx.rect(surface, config.COLORS[color], (x, 368, width * remaining / limit, 7))
         else:
             text(surface, tr("ai_time", seconds=now - self.turn_started), (x, 338))
         text(surface, tr("ai_info"), (x, 400))
@@ -226,7 +238,7 @@ class GameScreen:
             shade = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
             shade.fill((0, 0, 0, 175))
             surface.blit(shade, (0, 0))
-            pygame.draw.rect(surface, config.COLORS["panel"], (350, 232, 580, 320), border_radius=10)
+            gfx.rect(surface, config.COLORS["panel"], (350, 232, 580, 320), border_radius=10)
             winner = self.state.winner()
             result = tr("draw") if winner is None else tr("winner", name=tr("player_short" if winner == config.PLAYER_COLOR else "ai_short"))
             text(surface, result, (640, 279), config.FONT_TITLE, center=True)

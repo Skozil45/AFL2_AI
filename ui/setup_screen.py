@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import secrets
 import pygame
 import config
+from ui import gfx
 from ui.widgets import Button, text, tr, tab_index
 
 
@@ -99,8 +100,8 @@ class SetupScreen:
             button.enabled, button.selected = self.algorithm == "minimax", self.depth == i + 1 and self.algorithm == "minimax"
         for button in self.algorithm_buttons + self.depth_buttons + [self.start_button]:
             button.draw(surface, targets[self.focus] is button)
-        pygame.draw.rect(surface, config.COLORS["panel"], self.seed_rect, border_radius=4)
-        pygame.draw.rect(surface, config.COLORS["gold" if targets[self.focus] is self.seed_rect else "rim"], self.seed_rect, 2, border_radius=4)
+        gfx.rect(surface, config.COLORS["panel"], self.seed_rect, border_radius=4)
+        gfx.rect(surface, config.COLORS["gold" if targets[self.focus] is self.seed_rect else "rim"], self.seed_rect, 2, border_radius=4)
         text(surface, self.seed_text, (413, 413), max_width=self.seed_rect.width - 26)
         text(surface, self.error, (400, 458), config.FONT_SMALL, "red")
         for i, label in enumerate((tr("holes_info"), tr("range_info"),
