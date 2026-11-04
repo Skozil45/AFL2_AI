@@ -9,9 +9,24 @@ from ai import GreedyAI, MinimaxAI, AIStats, SearchCancelled
 from boardgen import create_board
 from engine import GameState
 from ui import gfx
-from ui.renderer import BoardRenderer
+from ui.renderer import BoardRenderer, disc
 from ui.setup_screen import Settings
 from ui.widgets import Button, text, tr, wrapped_text, tab_index
+
+PANEL_X, PANEL_WIDTH = 916, 352
+PANEL_LEFT, PANEL_RIGHT = PANEL_X + 16, PANEL_X + PANEL_WIDTH - 16
+PANEL_INNER = PANEL_RIGHT - PANEL_LEFT
+
+
+def card(surface: pygame.Surface, y: int, height: int) -> None:
+    """One section of the side panel."""
+    gfx.rect(surface, config.COLORS["panel"], (PANEL_X, y, PANEL_WIDTH, height), border_radius=8)
+
+
+def row(surface: pygame.Surface, label: str, value: str, y: int, color: str = "text") -> None:
+    """A label on the left with its value lined up on the right."""
+    text(surface, label, (PANEL_LEFT, y), config.FONT_SMALL, "muted")
+    text(surface, value, (PANEL_RIGHT, y), config.FONT_SMALL, color, max_width=PANEL_INNER // 2, right=True)
 
 
 class GameScreen:
@@ -20,8 +35,8 @@ class GameScreen:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.renderer = BoardRenderer(pygame.Rect(20, 63, 880, 650))
-        self.restart_button = Button(pygame.Rect(934, 655, 147, 46), tr("restart"))
-        self.setup_button = Button(pygame.Rect(1093, 655, 159, 46), tr("new_setup"))
+        self.restart_button = Button(pygame.Rect(916, 734, 170, 48), tr("restart"))
+        self.setup_button = Button(pygame.Rect(1098, 734, 170, 48), tr("new_setup"))
         self.again_button = Button(pygame.Rect(404, 476, 220, 48), tr("again"))
         self.overlay_setup = Button(pygame.Rect(644, 476, 230, 48), tr("new_setup"))
         self.results: Queue[tuple[int, tuple[int, AIStats] | Exception]] = Queue()
@@ -176,6 +191,81 @@ class GameScreen:
         name = tr("player_short" if lead > 0 else "ai_short")
         return tr("won_by" if self.finished is not None else "leads_by", name=name, points=abs(lead))
 
+    def draw_status(self, surface: pygame.Surface, human: bool) -> None:
+        """Whose turn it is, or that the match has ended."""
+        card(surface, 18, 54)
+        title = tr("over" if self.finished is not None else "player_turn" if human else "thinking")
+        text(surface, title, (PANEL_LEFT, 32), config.FONT_HEADING, max_width=PANEL_INNER - 40)
+        if self.finished is None:
+            disc(surface, (PANEL_RIGHT - 14, 45), 13, self.state.turn)
+
+    def draw_scores(self, surface: pygame.Surface) -> None:
+        """Both sides next to each other, with the gap between them underneath."""
+        card(surface, 80, 142)
+        for x, owner, name in ((PANEL_LEFT, config.PLAYER_COLOR, "player_short"),
+                               (PANEL_LEFT + 168, config.AI_COLOR, "ai_short")):
+            disc(surface, (x + 10, 104), 9, owner)
+            text(surface, tr(name), (x + 28, 95), config.FONT_SMALL, "muted")
+            text(surface, str(self.state.score(owner)), (x, 118), config.FONT_TITLE, max_width=150)
+            text(surface, tr("disc_count", count=self.state.disc_count(owner)), (x, 160), config.FONT_SMALL, "muted")
+        gfx.rect(surface, config.COLORS["disabled"], (PANEL_LEFT, 184, PANEL_INNER, 1))
+        text(surface, self.lead_text(), (PANEL_X + PANEL_WIDTH / 2, 203), config.FONT_SMALL, "gold", True)
+
+    def draw_clocks(self, surface: pygame.Surface, now: float, human: bool) -> None:
+        """The clock that matters right now, its bar, and the total game time."""
+        card(surface, 230, 86)
+        limit, fill = config.TURN_TIME_LIMIT_SECONDS, 0.0
+        color = "text"
+        if self.finished is not None:
+            text(surface, tr("timer_stopped"), (PANEL_LEFT, 242), config.FONT_SMALL, "muted")
+        elif not human:
+            row(surface, tr("ai_time"), tr("seconds", seconds=now - self.turn_started), 242)
+        elif limit is None:
+            text(surface, tr("limit_off"), (PANEL_LEFT, 242), config.FONT_SMALL, "muted")
+        else:
+            remaining = max(0.0, limit - (now - self.turn_started))
+            fill = remaining / limit
+            color = "red" if remaining <= config.TIMER_WARNING_SECONDS else "gold"
+            row(surface, tr("your_time"), tr("seconds", seconds=remaining), 242, color)
+        gfx.rect(surface, config.COLORS["disabled"], (PANEL_LEFT, 266, PANEL_INNER, 6))
+        gfx.rect(surface, config.COLORS[color], (PANEL_LEFT, 266, PANEL_INNER * fill, 6))
+        row(surface, tr("game_time"), tr("seconds", seconds=now - self.started), 284)
+
+    def draw_decision(self, surface: pygame.Surface) -> None:
+        """The numbers behind the AI's last move, one per row."""
+        card(surface, 324, 178)
+        text(surface, tr("ai_info"), (PANEL_LEFT, 336))
+        if self.stats is None:
+            text(surface, tr("no_decision"), (PANEL_LEFT, 368), config.FONT_SMALL, "muted")
+            return
+        rows = ((tr("chosen"), tr("chosen_value", number=self.stats.chosen_tile)),
+                (tr("evaluation"), tr("evaluation_value", value=self.stats.evaluation)),
+                (tr("candidates"), tr("count_value", count=self.stats.candidates)),
+                (tr("nodes"), tr("count_value", count=self.stats.nodes)),
+                (tr("decision_time"), tr("decision_value", ms=self.stats.time_ms)))
+        for i, (label, value) in enumerate(rows):
+            row(surface, label, value, 368 + i * 26)
+
+    def draw_match(self, surface: pygame.Surface) -> None:
+        """The settings of this match, which never change while it runs."""
+        card(surface, 510, 126)
+        text(surface, tr("match_info"), (PANEL_LEFT, 522))
+        algorithm = tr(self.settings.algorithm)
+        if self.settings.algorithm == "minimax":
+            algorithm = tr("config", algorithm=algorithm, depth=self.settings.depth)
+        row(surface, tr("ai_short"), algorithm, 554)
+        row(surface, tr("seed"), str(self.settings.seed), 580)
+        row(surface, tr("modifiers"), tr("modifier_range"), 606)
+
+    def draw_message(self, surface: pygame.Surface, now: float) -> None:
+        """A pass, timeout or error, outlined so it stands out from the statistics."""
+        if not self.error and now >= self.banner_until:
+            return
+        color = "red" if self.error else "gold"
+        card(surface, 644, 82)
+        gfx.rect(surface, config.COLORS[color], (PANEL_X, 644, PANEL_WIDTH, 82), 2, border_radius=8)
+        wrapped_text(surface, self.error or self.banner, pygame.Rect(PANEL_LEFT, 656, PANEL_INNER, 60), color)
+
     def draw(self, surface: pygame.Surface) -> None:
         """Render the board, scores, timer, search statistics and final overlay."""
         now = self.finished if self.finished is not None else perf_counter()
@@ -191,47 +281,12 @@ class GameScreen:
         base = config.BASE_VALUE
         text(surface, tr("value_note", base=base, plus=base + 3, minus=base - 2), (self.renderer.rect.centerx, 777),
              config.FONT_SMALL, "muted", center=True)
-        panel = pygame.Rect(916, 18, 352, 706)
-        gfx.rect(surface, config.COLORS["panel"], panel, border_radius=8)
-        x, width = 934, 318
-        title = tr("over" if self.finished is not None else "player_turn" if human else "thinking")
-        text(surface, title, (x, 36), config.FONT_HEADING, max_width=width)
-        lines = [tr("score", name=tr("player"), score=self.state.score(config.BLACK)),
-                 tr("score", name=tr("ai"), score=self.state.score(config.WHITE)),
-                 self.lead_text(),
-                 tr("discs", black=self.state.disc_count(config.BLACK), white=self.state.disc_count(config.WHITE))]
-        for i, label in enumerate(lines):
-            text(surface, label, (x, 92 + i * 29), config.FONT_BODY if i < 2 else config.FONT_SMALL, max_width=width)
-        text(surface, tr("seed", seed=self.settings.seed), (x, 218), config.FONT_SMALL, "muted", max_width=width)
-        text(surface, tr("range_info"), (x, 244), config.FONT_SMALL, "muted")
-        depth = self.settings.depth if self.settings.algorithm == "minimax" else tr("na")
-        text(surface, tr("config", algorithm=tr(self.settings.algorithm), depth=depth), (x, 270), config.FONT_SMALL, "muted")
-        text(surface, tr("elapsed", seconds=now - self.started), (x, 306))
-        if self.finished is not None:
-            text(surface, tr("timer_stopped"), (x, 338), color="muted")
-        elif human:
-            limit = config.TURN_TIME_LIMIT_SECONDS
-            if limit is None:
-                text(surface, tr("limit_off"), (x, 338), config.FONT_SMALL)
-            else:
-                remaining = max(0.0, limit - (now - self.turn_started))
-                color = "red" if remaining <= config.TIMER_WARNING_SECONDS else "gold"
-                text(surface, tr("remaining", seconds=remaining), (x, 338), color=color)
-                gfx.rect(surface, config.COLORS["disabled"], (x, 368, width, 7))
-                gfx.rect(surface, config.COLORS[color], (x, 368, width * remaining / limit, 7))
-        else:
-            text(surface, tr("ai_time", seconds=now - self.turn_started), (x, 338))
-        text(surface, tr("ai_info"), (x, 400))
-        if self.stats is None:
-            text(surface, tr("no_decision"), (x, 432), config.FONT_SMALL, "muted")
-        else:
-            labels = (tr("chosen", number=self.stats.chosen_tile), tr("evaluation", value=self.stats.evaluation),
-                      tr("candidates", count=self.stats.candidates), tr("nodes", count=self.stats.nodes),
-                      tr("decision_time", ms=self.stats.time_ms))
-            for i, label in enumerate(labels):
-                text(surface, label, (x, 432 + i * 25), config.FONT_SMALL, max_width=width)
-        if self.error or now < self.banner_until:
-            wrapped_text(surface, self.error or self.banner, pygame.Rect(x, 575, width, 70), "red" if self.error else "gold")
+        self.draw_status(surface, human)
+        self.draw_scores(surface)
+        self.draw_clocks(surface, now, human)
+        self.draw_decision(surface)
+        self.draw_match(surface)
+        self.draw_message(surface, now)
         self.restart_button.draw(surface, focused is self.restart_button)
         self.setup_button.draw(surface, focused is self.setup_button)
         if self.finished is not None:
@@ -242,7 +297,10 @@ class GameScreen:
             winner = self.state.winner()
             result = tr("draw") if winner is None else tr("winner", name=tr("player_short" if winner == config.PLAYER_COLOR else "ai_short"))
             text(surface, result, (640, 279), config.FONT_TITLE, center=True)
-            for i, label in enumerate(lines[:3]):
+            lines = [tr("score", name=tr("player"), score=self.state.score(config.BLACK)),
+                     tr("score", name=tr("ai"), score=self.state.score(config.WHITE)),
+                     self.lead_text()]
+            for i, label in enumerate(lines):
                 text(surface, label, (640, 345 + i * 32), center=True)
             self.again_button.draw(surface, focused is self.again_button)
             self.overlay_setup.draw(surface, focused is self.overlay_setup)

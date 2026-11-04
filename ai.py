@@ -63,7 +63,7 @@ class GreedyAI:
         """Greedy rates the board immediately after one candidate move."""
         self.nodes += 1
         return state.score(self.color)
-
+    
 
 class MinimaxAI(GreedyAI):
     """Depth counts moves and passes, including the selected root move."""

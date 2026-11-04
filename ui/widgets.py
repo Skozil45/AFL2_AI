@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from functools import lru_cache
+from math import ceil
 import pygame
 from config import COLORS, STRINGS, FONT_NAME, FONT_BODY, FONT_SMALL
 from ui import gfx
@@ -13,6 +14,13 @@ def load_font(size: int) -> pygame.font.Font:
     return pygame.font.Font(FONT_NAME, size)
 
 
+@lru_cache(maxsize=2048)
+def render_text(value: str, pixels: int, color: str) -> pygame.Surface:
+    """Draw text four times larger, then shrink it so letters stay evenly spaced."""
+    large = load_font(pixels * 4).render(value, True, COLORS[color])
+    return pygame.transform.smoothscale(large, (ceil(large.get_width() / 4), ceil(large.get_height() / 4)))
+
+
 def tr(key: str, **values: object) -> str:
     """Resolve interface text from the translation dictionary."""
     return STRINGS[key].format(**values)
@@ -20,17 +28,19 @@ def tr(key: str, **values: object) -> str:
 
 def text(surface: pygame.Surface, value: str, position: tuple[float, float],
          size: int = FONT_BODY, color: str = "text", center: bool = False,
-         max_width: int | None = None) -> None:
+         max_width: int | None = None, right: bool = False) -> None:
     """Draw text, shrinking unusually long seeds or translations to fit."""
     pixels = gfx.px(size)
     if max_width:
         while load_font(pixels).size(value)[0] > gfx.px(max_width) and pixels > gfx.px(12):
             pixels -= 1
-    rendered = load_font(pixels).render(value, True, COLORS[color])
+    rendered = render_text(value, pixels, color)
     rect = rendered.get_rect()
     x, y = gfx.to_screen(position)
     if center:
         rect.center = round(x), round(y)
+    elif right:
+        rect.topright = round(x), round(y)
     else:
         rect.topleft = round(x), round(y)
     surface.blit(rendered, rect)
@@ -40,16 +50,19 @@ def wrapped_text(surface: pygame.Surface, value: str, rect: pygame.Rect,
                  color: str = "text", size: int = FONT_SMALL) -> None:
     """Wrap status messages within the panel."""
     font = load_font(gfx.px(size))
-    line, y = "", rect.y
-    for word in value.split():
-        proposed = f"{line} {word}".strip()
-        if line and font.size(proposed)[0] > gfx.px(rect.width):
-            text(surface, line, (rect.x, y), size, color)
-            y += font.get_linesize() / gfx.px(size) * size
-            line = word
-        else:
-            line = proposed
-    text(surface, line, (rect.x, y), size, color, max_width=rect.width)
+    y = rect.y
+    for paragraph in value.split("\n"):
+        line = ""
+        for word in paragraph.split():
+            proposed = f"{line} {word}".strip()
+            if line and font.size(proposed)[0] > gfx.px(rect.width):
+                text(surface, line, (rect.x, y), size, color)
+                y += font.get_linesize() / gfx.px(size) * size
+                line = word
+            else:
+                line = proposed
+        text(surface, line, (rect.x, y), size, color, max_width=rect.width)
+        y += font.get_linesize() / gfx.px(size) * size
 
 
 @dataclass

@@ -57,7 +57,7 @@ class BoardRenderer:
         for i, center in enumerate(self.centers):
             if i in HOLES:
                 gfx.polygon(surface, COLORS["hole"], corners(center, self.size))
-                hex_cell(surface, center, self.size - 5, "hole", "hole_edge", 1)
+                hex_cell(surface, center, self.size - 5, "hole", "hole_edge", 2)
             else:
                 modifier = state.board.modifiers[i]
                 assert modifier is not None
